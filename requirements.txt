@@ -2,9 +2,10 @@ matplotlib
 numpy
 pandas
 plotly
-
 scipy
 seaborn
 statsmodels
 streamlit
 streamlit
+openpyxl 
+xlsxwriter
