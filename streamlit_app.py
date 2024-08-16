@@ -38,14 +38,25 @@ def plot_regression_lines(X, y, data):
     
 def regression_analysis(X, y, data):
     columns = X.copy()
+    if data.isna().values.any():
+        st.subheader("Warning! detected a missing value!...")
+        st.text("attempting to remove missing value from dataframe...")
+        st.write(data[X].isnull().sum())
+        # Dropping missing values from dataframe
+        for column in X:
+            if data[column].isna().any():
+                data.dropna(subset=[column], inplace=True)
+                # st.write(f"Removed missing values from column: {column}")
+            data.dropna(subset = [y], inplace = True)
+                
+        st.write("missing value removal success... current number of rows : {}".format(len(dataframe)))
 
     vif__ = data[columns].copy()
     vif__ = sm.add_constant(vif__)
     vif_data = pd.DataFrame()
     vif_data["feature"] = vif__.columns
     vif_data["VIF"] = [variance_inflation_factor(vif__.values, i) for i in range(len(vif__.columns))]
-    st.write("VIF Data:")
-    st.write(vif_data)
+    vif_data = vif_data[vif_data['feature']!='const']
 
     columns.append(y)
     data_copy = data[columns]
@@ -57,12 +68,17 @@ def regression_analysis(X, y, data):
     dependent = X 
     independent = y
     X = data_copy[X]
-    y = data_copy[y]
+    y = data_copy[y]     
+    
+    
 
     reg_X = sm.add_constant(X)
     regression = sm.OLS(y, reg_X).fit()
-    st.write("Regression Summary:")
+    st.subheader("Regression Summary:")
     st.write(regression.summary(alpha=0.1))
+    
+    st.subheader("VIF Data:")
+    st.write(vif_data)
 
     y_pred = regression.predict(reg_X)
     
@@ -91,7 +107,7 @@ def regression_analysis(X, y, data):
     residuals = regression.resid
     ad_test = anderson(residuals, dist='norm')
     plt.figure(figsize=(10, 6))
-    sns.kdeplot(residuals, shade=True)
+    sns.kdeplot(residuals, fill=True)
     plt.axvline(x=0, color='red', linestyle='--')
     plt.xlabel('Residuals')
     plt.title('Residuals Distribution')
@@ -132,17 +148,28 @@ def regression_analysis(X, y, data):
 
 # Streamlit app
 st.title('Regression Analysis Tool')
+st.text('A simple linear regression analysis tools.') 
+st.text('this is a prototype and still on development') 
+st.subheader('How to use this app?')  
+st.text('simply upload your file by clicking the form upload file')  
+st.text('choose the independent and dependent variable on the left sidebar')  
+st.text('get the result by clicking the submit button')  
 
-uploaded = st.file_uploader(label="Please Upload your CSV or Excel file", type=['xlsx', 'csv'])
+uploaded = st.file_uploader(label="Please Upload your Excel file", type=['xlsx'])
+
 
 if uploaded is not None:
     dataframe = pd.read_excel(uploaded)
     st.write("Great, here is the preview of your data.")
     st.write(dataframe.head(5))
+    dataframe_model = dataframe.select_dtypes(include='number')
 
     st.sidebar.header("Regression Settings")
-    independent_vars = st.sidebar.multiselect("Select independent variable(s)", dataframe.columns)
-    dependent_var = st.sidebar.selectbox("Select dependent variable", dataframe.columns)
-
-    if independent_vars and dependent_var:
+    independent_vars = st.sidebar.multiselect("Select independent variable(s) (X)", dataframe_model.columns.sort_values())
+    dependent_var = st.sidebar.selectbox("Select dependent variable (Y)", dataframe_model.columns.sort_values())
+    button_submit = st.sidebar.button("Start regression analysis")
+    
+    if independent_vars and dependent_var and button_submit:
+        st.text('If you like the apps, kindly click share or star on my github') 
+        st.text('-Indera') 
         regression_analysis(independent_vars, dependent_var, dataframe)
