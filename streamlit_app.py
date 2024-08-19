@@ -147,29 +147,70 @@ def regression_analysis(X, y, data):
     )
 
 # Streamlit app
+import pandas as pd
+import streamlit as st
+
+# Title and description
 st.title('Regression Analysis Tool')
-st.text('A simple linear regression analysis tools.') 
-st.text('this is a prototype and still on development') 
-st.subheader('How to use this app?')  
-st.text('simply upload your file by clicking the form upload file')  
-st.text('choose the independent and dependent variable on the left sidebar')  
-st.text('get the result by clicking the submit button')  
+st.text('A simple linear regression analysis tool.')
+st.text('This is a prototype and still under development.')
+st.subheader('How to use this app?')
+st.text('1. Upload your file by clicking the "Upload file" button.')
+st.text('2. Choose the independent and dependent variables from the left sidebar.')
+st.text('3. Get the results by clicking the "Start regression analysis" button.')
 
-uploaded = st.file_uploader(label="Please Upload your Excel file", type=['xlsx'])
-
+# File uploader
+uploaded = st.file_uploader("Please upload your Excel file", type=['xlsx'])
 
 if uploaded is not None:
+    # Load and preview the data
     dataframe = pd.read_excel(uploaded)
     st.write("Great, here is the preview of your data.")
     st.write(dataframe.head(5))
+    length_of_data = len(dataframe)
+    st.write(f"Number of rows: {length_of_data}")
+    
+    # Filter numerical columns
     dataframe_model = dataframe.select_dtypes(include='number')
 
+    # Sidebar for regression settings
     st.sidebar.header("Regression Settings")
-    independent_vars = st.sidebar.multiselect("Select independent variable(s) (X)", dataframe_model.columns.sort_values())
-    dependent_var = st.sidebar.selectbox("Select dependent variable (Y)", dataframe_model.columns.sort_values())
-    button_submit = st.sidebar.button("Start regression analysis")
-    
-    if independent_vars and dependent_var and button_submit:
-        st.text('If you like the apps, kindly click share or star on my github') 
-        st.text('-Indera') 
+    independent_vars = st.sidebar.multiselect("Select independent variable(s) (X)", dataframe_model.columns)
+    dependent_var = st.sidebar.selectbox("Select dependent variable (Y)", dataframe_model.columns)
+
+    # Filter data
+    st.subheader("Do you want to apply a filter to your data?")
+    filter_column = st.selectbox("Filter column", dataframe.columns)
+
+    if filter_column:
+        if filter_column in dataframe_model.columns:
+            filter_type = st.selectbox(f'How do you want to filter the {filter_column}?', ['Greater Than', 'Less Than'])
+            filter_value = st.number_input(f'Enter value for {filter_type.lower()}', format="%.2f")
+            if st.button('Apply Filter'):
+                if filter_type == 'Greater Than':
+                    dataframe = dataframe[dataframe[filter_column] > filter_value]
+                elif filter_type == 'Less Than':
+                    dataframe = dataframe[dataframe[filter_column] < filter_value]
+                st.write("Data filtered successfully!")
+                st.write(f"Removed {length_of_data - len(dataframe)} total rows")
+                
+        else:
+            filter_method = st.radio("Filter Method", ['Exclude', 'Include'])
+            filter_values = st.multiselect(f"Select values to {filter_method.lower()}", dataframe[filter_column].unique())
+            if st.button('Filter Data'):
+                if filter_method == 'Include':
+                    dataframe = dataframe[dataframe[filter_column].isin(filter_values)]
+                elif filter_method == 'Exclude':
+                    dataframe = dataframe[~dataframe[filter_column].isin(filter_values)]
+                st.write("Data filtered successfully!")
+                st.write(f"Removed {length_of_data - len(dataframe)} total rows")
+
+    # Start regression analysis button
+    button_submit = st.button("Start regression analysis")
+
+    if button_submit and independent_vars and dependent_var:
+        st.text('If you like this app, kindly click "share" or "star" on my GitHub.')
+        st.text('- Indera')
+        # Call your regression analysis function here
         regression_analysis(independent_vars, dependent_var, dataframe)
+
